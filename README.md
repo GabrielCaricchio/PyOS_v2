@@ -1,3 +1,16 @@
+# Trabalho de Sistemas Operacionais (SO)
+##### Professor: Filipe Araujo
+##### Turma: SI 3°P manhã
+##### Sistema: PyOS (Simulado de SO feito com Python)
+##### Equipe:
+- ###### Daniel Willian da Silva - 01831927
+- ###### Gabriel Arruda Caricchio - 01824947
+- ###### Ingrid Motta Santos - 01834701
+- ###### Marcos Matheus gomes Nerys - 01779978
+- ###### Pedro Henrique Rodrigues da Silva - 01794091
+
+---
+
 # 🟢 Nível 1 — Limite de Memória (OOM)
 Objetivo
 

@@ -4,6 +4,7 @@
 
 import time
 import random
+import sys
 
 # ==========================================
 # ESTRUTURAS DO KERNEL
@@ -25,6 +26,70 @@ scanner = {
     "livre": True,
     "pid": None
 }
+
+#===========================================
+# LOGO PyOS
+#===========================================
+def logo_pyos():
+    # --- DEFINIÇÃO DE CORES ---
+    # Esses códigos estranhos são "Escapes ANSI". O terminal os lê como instruções de cor, 
+    # em vez de texto comum. \033[ inicia o comando, o número define a cor.
+    VERDE = "\033[1;32m"   # 1 deixa em negrito, 32 é o código para verde
+    BRANCO = "\033[1;37m"  # 37 é o código para branco
+    RESET = "\033[0m"      # O código 0 diz ao terminal para voltar à cor padrão (branco ou cinza)
+
+    # --- O DESENHO (ASCII ART) ---
+    # O 'r' antes das aspas significa 'raw' (cru). Ele impede que o Python tente 
+    # interpretar as barras invertidas (\) como comandos, tratando tudo como desenho.
+    logo = r"""
+     ____         ___   ____ 
+    |  _ \ _   _ / _ \ / ___|
+    | |_) | | | | | | |\___ \
+    |  __/| |_| | |_| | ___) |
+    |_|    \__, |\___/ |____/ 
+           |___/             
+              
+               ____          ____
+              /    \________/    \
+             |  /\    PYOS      /\  |
+             | |  |   V2.0     |  | |
+             |  \/____    _____\/  /
+              \______ \  / _______/
+                     \ \/ /
+                      \  /
+                       \/
+    """
+
+    # --- EXIBIÇÃO DO LOGO ---
+    print(VERDE) # Aplica a cor verde no terminal para tudo o que vier abaixo
+    
+    # logo.splitlines() pega o texto gigante e o corta em uma lista de linhas individuais.
+    # O laço 'for' pega uma linha por vez dessa lista para processar.
+    for linha in logo.splitlines():
+        print(linha) # Imprime a linha atual
+        # time.sleep(0.1) faz o programa "dormir" por 0.1 segundos antes de ir para a próxima linha.
+        # Isso cria a ilusão de que o sistema está carregando a imagem de baixo para cima.
+        time.sleep(0.1) 
+
+    # --- EFEITO DE DIGITAÇÃO ---
+    mensagem = "\n >> Iniciando Sistema..."
+    
+    # sys.stdout.write funciona como o print, mas não pula linha automaticamente no final.
+    sys.stdout.write(BRANCO) # Muda a cor do pincel para branco
+    
+    # Aqui, o 'for' percorre cada LETRA da mensagem, uma por uma.
+    for letra in mensagem:
+        sys.stdout.write(letra) # Escreve a letra atual na tela
+        
+        # O comando flush() é crucial: por padrão, o computador guarda o texto na memória 
+        # e só joga na tela quando enche um "balde". O flush força o balde a esvaziar NA HORA,
+        # garantindo que a letra apareça instantaneamente conforme o loop roda.
+        sys.stdout.flush() 
+        
+        time.sleep(0.04) # Pausa curtíssima para simular alguém digitando rápido
+    
+    # No final, imprimimos o RESET para que o comando seguinte do usuário não saia colorido.
+    print(RESET + "\n")
 
 # ==========================================
 # PCB
@@ -63,7 +128,7 @@ class PCB:
 
 def boot():
 
-    print("Iniciando PyOS Kernel v3.0...")
+    print("Iniciando PyOS Kernel v2.0...")
     time.sleep(1)
 
     print("Carregando módulos de memória [OK]")
@@ -658,6 +723,6 @@ def shell():
 # ==========================================
 
 if __name__ == "__main__":
-
+    logo_pyos()
     boot()
     shell()
