@@ -1,101 +1,363 @@
-# 🖥️ PyOS - Simulador Educacional de Sistema Operacional
+# 🟢 Nível 1 — Limite de Memória (OOM)
+Objetivo
 
-![Status](https://img.shields.io/badge/Status-Educacional-blue)
-![Python](https://img.shields.io/badge/Python-3.x-green)
+Impedir que o sistema aceite mais de 5 processos simultaneamente.
 
-Este repositório contém o **PyOS**, um simulador lógico de Sistema Operacional desenvolvido em Python para fins didáticos. O projeto foi desenhado para cobrir os conceitos fundamentais das **Unidades I e II** da disciplina de Sistemas Operacionais, permitindo que alunos explorem a mecânica interna de um Kernel sem a complexidade de linguagens de baixo nível.
+Lógica da solução
 
-## 🎯 Objetivos Pedagógicos
-* Compreender o **Bloco Descritor de Processo (PCB)**.
-* Visualizar o **Chaveamento de Contexto** e o **Escalonamento Round Robin**.
-* Praticar a **Sincronização de Processos** através de Semáforos (Mutex).
-* Simular estados críticos como **Deadlock** e **Processos Zumbi**.
-* Entender chamadas de sistema (Syscalls) como o `fork()`.
+A tabela tabela_processos representa a RAM do sistema.
+Basta verificar o tamanho dela antes de criar um novo processo.
 
----
+Se já existirem 5 processos:
 
-## 🚀 Como Executar
+o kernel bloqueia a criação
+exibe erro de memória
+não instancia o PCB
+Alteração principal
 
-Certifique-se de ter o Python 3 instalado em sua máquina.
+Na função spawn_process():
 
-1.  Clone este repositório:
-    ```bash
-    git clone https://github.com/FilipeHSAraujo/PyOs.git
-    ```
-2.  Navegue até a pasta do projeto:
-    ```bash
-    cd PyOS
-    ```
-3.  Execute o Kernel:
-    ```bash
-    python init.py
-    ```
+def spawn_process(nome):
 
----
+    # Simulação de limite de RAM
+    if len(tabela_processos) >= 5:
+        print("[Kernel Panic] ERRO: Out of Memory (OOM)")
+        return
 
-## 🛠️ Comandos do Shell (User Space)
+    novo_processo = PCB(nome)
+    tabela_processos.append(novo_processo)
 
-Ao iniciar o PyOS, você terá acesso a um terminal interativo (`root@pyos:~#`):
+    print(f"[Kernel] Processo '{nome}' criado com PID {novo_processo.pid}")
 
-| Comando | Descrição |
-| :--- | :--- |
-| `spawn [nome]` | Cria um novo processo na RAM (gera um PID único). |
-| `ps` | Lista todos os processos ativos e seus respectivos estados. |
-| `cpu` | Executa 1 ciclo (tick) de clock no processador (Escalonador). |
-| `lock [PID]` | Solicita acesso exclusivo a um recurso via Semáforo. |
-| `unlock [PID]` | Libera o recurso bloqueado para outros processos. |
-| `clear` | Limpa a tela do terminal. |
-| `exit` | Desliga o simulador. |
+# 🟡 Nível 2 — Automador de Clock (run)
+Objetivo
 
----
+Criar um comando que execute automaticamente a CPU até todos os processos terminarem.
 
-## 🎮 Trilha de Desafios: Hackeando o Kernel
+Lógica da solução
 
-O projeto foi estruturado em níveis de dificuldade para que você possa evoluir o código original e implementar novas funcionalidades:
+Hoje:
 
-### 🟢 Nível 1: Limite de Memória (OOM)
-* **Missão:** Impeça que o sistema aceite mais de 5 processos simultâneos.
-* **Conceito:** Proteção de recursos e erro *Out of Memory*.
+cada comando cpu executa apenas 1 tick
 
-### 🟡 Nível 2: Automador de Clock (Comando `run`)
-* **Missão:** Crie o comando `run` que executa o escalonador automaticamente em loop até a RAM esvaziar.
-* **Conceito:** Timer Interrupt e automação de ciclos de CPU.
+O run:
 
-### 🟡 Nível 3: Gargalo de E/S (Estado BLOQUEADO)
-* **Missão:** Implemente os comandos `block` e `unblock` para simular esperas de periféricos.
-* **Conceito:** Ciclo de vida do processo e gerenciamento de E/S.
+executa escalonador_tick() continuamente
+para apenas quando não houver processos ativos
 
-### 🟠 Nível 4: O Fim da Democracia (Prioridades)
-* **Missão:** Adicione prioridades aos processos e altere o escalonador para processar primeiro os de alta prioridade.
-* **Conceito:** Escalonamento Preemptivo por Prioridade.
+Isso simula:
 
-### 🔴 Nível 5: Mago da Sincronização (Semáforos)
-* **Missão:** Implemente o controle de acesso a um recurso compartilhado (ex: Impressora).
-* **Conceito:** Exclusão mútua e Região Crítica.
+clock do processador
+timer interrupt automático
+SO executando continuamente
+Alteração principal
 
-### 🔴 Nível 6: Arquiteto do Caos (Simulação de Deadlock)
-* **Missão:** Provoque uma espera circular entre dois processos por dois recursos distintos.
-* **Conceito:** Impasse de recursos e interrupção do sistema.
+Adicionar no shell():
 
-### 🟣 Nível 7: O Apocalipse Zumbi
-* **Missão:** Altere o sistema para que processos terminados permaneçam na RAM como `ZUMBI` até o comando `wait`.
-* **Conceito:** Estruturas de dados pós-execução e coleta de lixo.
+elif acao == "run":
 
-### 💀 Nível 8: O Boss Final (`fork()`)
-* **Missão:** Implemente o comando `fork [PID]` para clonar um processo pai com seu contexto exato.
-* **Conceito:** Hierarquia de processos e clonagem de contexto.
+    print("[Kernel] Iniciando execução automática...\n")
 
-### 🔥 Nível Supremo: Comunicação entre Processos (IPC)
-* **Missão:** Crie memória compartilhada para que processos possam ler e escrever mensagens entre si.
-* **Conceito:** Isolamento de memória e IPC (Inter-Process Communication).
+    while tabela_processos:
+        escalonador_tick()
+        time.sleep(0.5)
 
----
+    print("\n[Kernel] Todos os processos finalizaram.")
 
-## 📘 Referência Teórica
-Este projeto serve como material de apoio para as unidades curriculares de Sistemas Operacionais, focando em:
-* **Unidade I:** Fundamentos, Processos e Threads.
-* **Unidade II:** Gerência do Processador e Escalonamento.
+Adicionar no help:
 
----
+print("  run          - Executa a CPU continuamente")
 
-Desenvolvido para fins educacionais. Sinta-se à vontade para expandir o Kernel! 💻✨
+# 🟡 Nível 3 — Gargalo de E/S (BLOQUEADO)
+Objetivo
+
+Adicionar estado BLOQUEADO.
+
+Lógica da solução
+
+Processos podem:
+
+executar
+esperar E/S (disco, teclado, impressora)
+voltar para prontos
+
+O escalonador NÃO deve executar processos bloqueados.
+
+Alterações principais
+Novos estados
+
+No PCB:
+
+self.estado = "PRONTO"
+
+Estados possíveis:
+
+PRONTO
+EXECUTANDO
+BLOQUEADO
+TERMINADO
+Escalonador ignora bloqueados
+
+Alterar:
+
+prontos = [p for p in tabela_processos if p.estado != "TERMINADO"]
+
+Para:
+
+prontos = [
+    p for p in tabela_processos
+    if p.estado == "PRONTO"
+]
+Comando block
+elif acao == "block":
+
+    if len(comando) > 1:
+
+        alvo = int(comando[1])
+
+        for p in tabela_processos:
+            if p.pid == alvo:
+                p.estado = "BLOQUEADO"
+                print(f"[Kernel] PID {alvo} bloqueado aguardando E/S.")
+Comando unblock
+elif acao == "unblock":
+
+    if len(comando) > 1:
+
+        alvo = int(comando[1])
+
+        for p in tabela_processos:
+            if p.pid == alvo:
+                p.estado = "PRONTO"
+                print(f"[Kernel] PID {alvo} voltou para fila de prontos.")
+
+# 🟠 Nível 4 — Prioridades
+Objetivo
+
+Executar primeiro processos mais importantes.
+
+Lógica da solução
+
+Cada processo recebe:
+
+prioridade alta
+média
+baixa
+
+O escalonador escolhe:
+
+maior prioridade
+depois Round Robin dentro da prioridade
+Alteração no PCB
+self.prioridade = random.randint(1, 3)
+
+Exemplo:
+
+1 = baixa
+2 = média
+3 = alta
+Escalonador com prioridade
+
+Antes:
+
+processo_atual = prontos[0]
+
+Depois:
+
+prontos.sort(key=lambda p: p.prioridade, reverse=True)
+
+processo_atual = prontos[0]
+Mostrar prioridade no ps
+print(f"{'PID':<6} | {'PRIO':<5} | {'NOME':<12}")
+
+# 🔴 Nível 5 — Semáforos
+Objetivo
+
+Controlar acesso exclusivo a recurso compartilhado.
+
+Lógica da solução
+
+Somente:
+
+1 processo por vez
+pode usar a impressora
+
+Semáforo:
+
+1 → livre
+0 → ocupado
+
+Se ocupado:
+
+processo entra em BLOQUEADO
+Estrutura do recurso
+impressora = {
+    "livre": True,
+    "pid": None
+}
+Comando lock
+elif acao == "lock":
+
+    alvo = int(comando[1])
+
+    if impressora["livre"]:
+
+        impressora["livre"] = False
+        impressora["pid"] = alvo
+
+        print(f"[Kernel] PID {alvo} adquiriu a impressora.")
+
+    else:
+        print("[Kernel] Impressora ocupada.")
+Comando unlock
+elif acao == "unlock":
+
+    alvo = int(comando[1])
+
+    if impressora["pid"] == alvo:
+
+        impressora["livre"] = True
+        impressora["pid"] = None
+
+        print(f"[Kernel] PID {alvo} liberou a impressora.")
+
+# 🔴 Nível 6 — Deadlock
+Objetivo
+
+Simular impasse entre processos.
+
+Lógica da solução
+
+Cenário clássico:
+
+Processo A segura Impressora
+Processo B segura Scanner
+A quer Scanner
+B quer Impressora
+
+Nenhum avança.
+
+Estrutura
+scanner = {
+    "livre": True,
+    "pid": None
+}
+Simulação
+
+PID 1000:
+
+lock impressora
+
+PID 1001:
+
+lock scanner
+
+Depois:
+
+PID 1000 tenta scanner
+PID 1001 tenta impressora
+
+Ambos ficam BLOQUEADOS.
+
+Detecção simples
+if not impressora["livre"] and not scanner["livre"]:
+    print("[Kernel Panic] DEADLOCK DETECTADO")
+
+# 🟣 Nível 7 — Processos Zumbis
+Objetivo
+
+Processos terminados continuam na RAM.
+
+Lógica da solução
+
+Na vida real:
+
+processo termina
+mas PCB continua
+aguardando processo pai chamar wait()
+
+Isso gera:
+
+ZUMBI
+Alteração no término
+
+Antes:
+
+tabela_processos.remove(processo_atual)
+
+Depois:
+
+processo_atual.estado = "ZUMBI"
+Comando wait
+elif acao == "wait":
+
+    tabela_processos = [
+        p for p in tabela_processos
+        if p.estado != "ZUMBI"
+    ]
+
+    print("[Kernel] Coleta de processos zumbis concluída.")
+
+# 💀 Nível 8 — fork()
+Objetivo
+
+Clonar processos.
+
+Lógica da solução
+
+fork():
+
+cria cópia do processo pai
+mesmo contexto
+novo PID
+Comando fork
+elif acao == "fork":
+
+    alvo = int(comando[1])
+
+    for p in tabela_processos:
+
+        if p.pid == alvo:
+
+            clone = PCB(p.nome + "_child")
+
+            clone.ciclos_restantes = p.ciclos_restantes
+            clone.estado = "PRONTO"
+
+            tabela_processos.append(clone)
+
+            print(f"[Kernel] Processo clonado.")
+
+# 🔥 Nível Supremo — IPC (Comunicação entre Processos)
+Objetivo
+
+Permitir troca de mensagens entre processos.
+
+Lógica da solução
+
+Criar memória compartilhada:
+
+um dicionário global
+processos escrevem e leem mensagens
+Estrutura IPC
+ipc_memoria = {}
+Comando send
+elif acao == "send":
+
+    pid = comando[1]
+    mensagem = " ".join(comando[2:])
+
+    ipc_memoria[pid] = mensagem
+
+    print("[IPC] Mensagem enviada.")
+Comando read
+elif acao == "read":
+
+    pid = comando[1]
+
+    msg = ipc_memoria.get(pid)
+
+    if msg:
+        print(f"[IPC] Mensagem: {msg}")
+    else:
+        print("[IPC] Nenhuma mensagem.")

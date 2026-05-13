@@ -1,155 +1,663 @@
-#imports
+# ==========================================
+# IMPORTS
+# ==========================================
+
 import time
-import sys
 import random
 
 # ==========================================
-# ESTRUTURAS DE DADOS DO KERNEL
+# ESTRUTURAS DO KERNEL
 # ==========================================
 
-# Tabela global de processos (Nossa "RAM")
 tabela_processos = []
-pid_counter = 1000  # PIDs na vida real começam em 1000 
+pid_counter = 1000
+
+# IPC (Memória Compartilhada)
+ipc_memoria = {}
+
+# Recursos compartilhados
+impressora = {
+    "livre": True,
+    "pid": None
+}
+
+scanner = {
+    "livre": True,
+    "pid": None
+}
+
+# ==========================================
+# PCB
+# ==========================================
 
 class PCB:
-    """Bloco Descritor de Processo (Process Control Block)"""
+    """Process Control Block"""
+
     def __init__(self, nome):
+
         global pid_counter
+
         self.pid = pid_counter
         self.nome = nome
-        self.estado = "PRONTO"  # Estados possíveis: PRONTO, EXECUTANDO, TERMINADO
-        self.ciclos_restantes = random.randint(2, 6)  # Define o "peso" do processo (quantos ticks ele precisa)
+
+        # Estados:
+        # PRONTO
+        # EXECUTANDO
+        # BLOQUEADO
+        # ZUMBI
+        self.estado = "PRONTO"
+
+        self.ciclos_restantes = random.randint(2, 6)
+
+        # Prioridade:
+        # 1 = baixa
+        # 2 = média
+        # 3 = alta
+        self.prioridade = random.randint(1, 3)
+
         pid_counter += 1
 
 # ==========================================
-# FUNÇÕES DO KERNEL E ESCALONADOR
+# BOOT
 # ==========================================
 
 def boot():
-    """Simula a inicialização do Sistema Operacional"""
-    print("Iniciando PyOS Kernel v1.0...")
+
+    print("Iniciando PyOS Kernel v3.0...")
     time.sleep(1)
+
     print("Carregando módulos de memória [OK]")
     time.sleep(0.5)
-    print("Iniciando escalonador de processos [OK]")
+
+    print("Iniciando escalonador [OK]")
     time.sleep(0.5)
-    print("Bem-vindo ao terminal. Digite 'help' para comandos.\n")
 
-def spawn_process(nome):
-    """Cria um novo processo e adiciona na tabela (RAM)"""
-    novo_processo = PCB(nome)
-    tabela_processos.append(novo_processo)
-    print(f"[Kernel] Processo '{nome}' criado com PID {novo_processo.pid}")
+    print("Inicializando IPC [OK]")
+    time.sleep(0.5)
 
-def escalonador_tick():
-    """Simula um ciclo (quantum) do processador executando a fila (Round Robin)"""
-    prontos = [p for p in tabela_processos if p.estado != "TERMINADO"]
-    
-    if not prontos:
-        print("[CPU] Ociosa (Idle). Nenhum processo na fila de prontos.")
-        return
+    print("Montando sistema de arquivos [OK]")
+    time.sleep(0.5)
 
-    # Pega o primeiro processo da fila
-    processo_atual = prontos[0]
-    
-    # CHAVEAMENTO DE CONTEXTO: Entrando na CPU
-    processo_atual.estado = "EXECUTANDO"
-    print(f"\n[CPU] Executando PID {processo_atual.pid} ({processo_atual.nome})...")
-    time.sleep(1)  # Simula o tempo real da CPU processando a tarefa
-    
-    # Decrementa o trabalho necessário (simula que ele fez progresso)
-    processo_atual.ciclos_restantes -= 1
-    
-    # Verifica se o processo terminou seu trabalho
-    if processo_atual.ciclos_restantes <= 0:
-        processo_atual.estado = "TERMINADO"
-        print(f"[Kernel] Processo PID {processo_atual.pid} finalizou e liberou a memória.")
-        # Remove da tabela de processos (limpa a RAM)
-        tabela_processos.remove(processo_atual)
-    else:
-        # CHAVEAMENTO DE CONTEXTO: Saindo da CPU por preempção (acabou o tempo dele)
-        processo_atual.estado = "PRONTO"
-        # Tira do início da fila e coloca no final (Round Robin)
-        tabela_processos.remove(processo_atual)
-        tabela_processos.append(processo_atual)
-        print(f"[Kernel] Chaveamento de contexto. PID {processo_atual.pid} pausado e movido para o fim da fila.")
+    print("\nBem-vindo ao PyOS.")
+    print("Digite 'help' para ver os comandos.\n")
 
 # ==========================================
-# INTERFACE COM O USUÁRIO (SHELL)
+# PROCESSOS
+# ==========================================
+
+def spawn_process(nome):
+
+    # Nível 1 — Limite de memória
+    ativos = [
+        p for p in tabela_processos
+        if p.estado != "ZUMBI"
+    ]
+
+    if len(ativos) >= 5:
+        print("[Kernel Panic] ERRO: Out of Memory (OOM)")
+        return
+
+    novo = PCB(nome)
+
+    tabela_processos.append(novo)
+
+    print(
+        f"[Kernel] Processo '{nome}' criado "
+        f"com PID {novo.pid} "
+        f"(Prioridade {novo.prioridade})"
+    )
+
+# ==========================================
+# ESCALONADOR
+# ==========================================
+
+def escalonador_tick():
+
+    # Apenas processos PRONTOS
+    prontos = [
+        p for p in tabela_processos
+        if p.estado == "PRONTO"
+    ]
+
+    if not prontos:
+        print("[CPU] Ociosa. Nenhum processo pronto.")
+        return
+
+    # Nível 4 — Prioridades
+    prontos.sort(
+        key=lambda p: p.prioridade,
+        reverse=True
+    )
+
+    processo_atual = prontos[0]
+
+    # EXECUTANDO
+    processo_atual.estado = "EXECUTANDO"
+
+    print(
+        f"\n[CPU] Executando "
+        f"PID {processo_atual.pid} "
+        f"({processo_atual.nome}) "
+        f"[PRIO {processo_atual.prioridade}]"
+    )
+
+    time.sleep(1)
+
+    processo_atual.ciclos_restantes -= 1
+
+    # Processo terminou
+    if processo_atual.ciclos_restantes <= 0:
+
+        # Nível 7 — Processo zumbi
+        processo_atual.estado = "ZUMBI"
+
+        print(
+            f"[Kernel] PID {processo_atual.pid} terminou "
+            f"e virou ZUMBI."
+        )
+
+    else:
+
+        # Volta para fila
+        processo_atual.estado = "PRONTO"
+
+        tabela_processos.remove(processo_atual)
+        tabela_processos.append(processo_atual)
+
+        print(
+            f"[Kernel] Chaveamento de contexto. "
+            f"PID {processo_atual.pid} voltou para fila."
+        )
+
+# ==========================================
+# DEADLOCK
+# ==========================================
+
+def verificar_deadlock():
+
+    if (
+        not impressora["livre"]
+        and
+        not scanner["livre"]
+    ):
+
+        print("\n[Kernel Panic] DEADLOCK DETECTADO")
+        print(
+            f"Impressora -> PID {impressora['pid']}"
+        )
+        print(
+            f"Scanner -> PID {scanner['pid']}"
+        )
+
+# ==========================================
+# SHELL
 # ==========================================
 
 def shell():
-    """O laço principal que aguarda comandos do usuário"""
+
     global tabela_processos
-    
+
     while True:
+
         try:
-            # O Prompt do nosso SO
-            comando = input("root@pyos:~# ").strip().lower().split()
-            
-            # Evita erro se o usuário apertar Enter vazio
+
+            comando = input(
+                "root@pyos:~# "
+            ).strip().split()
+
             if not comando:
                 continue
-                
-            acao = comando[0]
-            
+
+            acao = comando[0].lower()
+
+            # ==================================
+            # EXIT
+            # ==================================
+
             if acao == "exit":
-                print("Desligando o sistema...")
+
+                print("Desligando sistema...")
                 break
-                
+
+            # ==================================
+            # HELP
+            # ==================================
+
             elif acao == "help":
-                print("Comandos disponíveis:")
-                print("  spawn [nome] - Cria um novo processo")
-                print("  ps           - Lista os processos ativos")
-                print("  cpu          - Executa 1 ciclo do processador (Escalonador)")
-                print("  kill [PID]   - Encerra um processo à força")
-                print("  clear        - Limpa a tela")
-                print("  exit         - Desliga o sistema")
-                
+
+                print("\nComandos disponíveis:\n")
+
+                print("spawn [nome]")
+                print("ps")
+                print("cpu")
+                print("run")
+
+                print("kill [PID]")
+
+                print("block [PID]")
+                print("unblock [PID]")
+
+                print("lock [recurso] [PID]")
+                print("unlock [recurso] [PID]")
+
+                print("fork [PID]")
+
+                print("wait")
+
+                print("send [PID] [mensagem]")
+                print("read [PID]")
+
+                print("clear")
+                print("exit\n")
+
+            # ==================================
+            # CLEAR
+            # ==================================
+
             elif acao == "clear":
-                print("\033[H\033[J", end="")  # Código ANSI para limpar terminal
-                
+
+                print("\033[H\033[J", end="")
+
+            # ==================================
+            # SPAWN
+            # ==================================
+
             elif acao == "spawn":
+
                 if len(comando) > 1:
+
                     spawn_process(comando[1])
+
                 else:
-                    print("Uso correto: spawn [nome_do_processo]")
-                    
+                    print(
+                        "Uso correto: spawn [nome]"
+                    )
+
+            # ==================================
+            # PS
+            # ==================================
+
             elif acao == "ps":
-                # Formatação em colunas para ficar parecido com o Linux
-                print(f"{'PID':<6} | {'NOME':<12} | {'ESTADO':<12} | {'CICLOS RESTANTES'}")
-                print("-" * 55)
+
+                print(
+                    f"\n{'PID':<6} | "
+                    f"{'PRIO':<5} | "
+                    f"{'NOME':<15} | "
+                    f"{'ESTADO':<12} | "
+                    f"CICLOS"
+                )
+
+                print("-" * 65)
+
                 for p in tabela_processos:
-                    print(f"{p.pid:<6} | {p.nome[:12]:<12} | {p.estado:<12} | {p.ciclos_restantes}")
+
+                    print(
+                        f"{p.pid:<6} | "
+                        f"{p.prioridade:<5} | "
+                        f"{p.nome[:15]:<15} | "
+                        f"{p.estado:<12} | "
+                        f"{p.ciclos_restantes}"
+                    )
+
                 if not tabela_processos:
-                    print("Nenhum processo em execução.")
-                    
-            elif acao == "kill":
-                if len(comando) > 1:
-                    try:
-                        alvo = int(comando[1])
-                        # Recria a lista mantendo todos, exceto o alvo
-                        tabela_processos = [p for p in tabela_processos if p.pid != alvo]
-                        print(f"[Kernel] Sinal SIGKILL enviado. PID {alvo} destruído.")
-                    except ValueError:
-                        print("Erro: O PID deve ser um número inteiro.")
-                else:
-                    print("Uso correto: kill [PID]")
-                    
+                    print("Nenhum processo.")
+
+            # ==================================
+            # CPU
+            # ==================================
+
             elif acao == "cpu":
+
                 escalonador_tick()
-                
+
+            # ==================================
+            # RUN
+            # ==================================
+
+            elif acao == "run":
+
+                print(
+                    "\n[Kernel] Execução automática iniciada.\n"
+                )
+
+                while True:
+
+                    ativos = [
+                        p for p in tabela_processos
+                        if p.estado != "ZUMBI"
+                    ]
+
+                    if not ativos:
+                        break
+
+                    escalonador_tick()
+
+                    time.sleep(0.5)
+
+                print(
+                    "\n[Kernel] Todos os processos terminaram."
+                )
+
+            # ==================================
+            # KILL
+            # ==================================
+
+            elif acao == "kill":
+
+                if len(comando) > 1:
+
+                    try:
+
+                        alvo = int(comando[1])
+
+                        tabela_processos = [
+                            p for p in tabela_processos
+                            if p.pid != alvo
+                        ]
+
+                        print(
+                            f"[Kernel] PID {alvo} destruído."
+                        )
+
+                    except ValueError:
+
+                        print("PID inválido.")
+
+                else:
+
+                    print(
+                        "Uso correto: kill [PID]"
+                    )
+
+            # ==================================
+            # BLOCK
+            # ==================================
+
+            elif acao == "block":
+
+                if len(comando) > 1:
+
+                    alvo = int(comando[1])
+
+                    for p in tabela_processos:
+
+                        if p.pid == alvo:
+
+                            p.estado = "BLOQUEADO"
+
+                            print(
+                                f"[Kernel] PID {alvo} "
+                                f"bloqueado."
+                            )
+
+            # ==================================
+            # UNBLOCK
+            # ==================================
+
+            elif acao == "unblock":
+
+                if len(comando) > 1:
+
+                    alvo = int(comando[1])
+
+                    for p in tabela_processos:
+
+                        if p.pid == alvo:
+
+                            p.estado = "PRONTO"
+
+                            print(
+                                f"[Kernel] PID {alvo} "
+                                f"desbloqueado."
+                            )
+
+            # ==================================
+            # LOCK
+            # ==================================
+
+            elif acao == "lock":
+
+                if len(comando) < 3:
+
+                    print(
+                        "Uso: lock [recurso] [PID]"
+                    )
+
+                    continue
+
+                recurso = comando[1]
+                pid = int(comando[2])
+
+                alvo = None
+
+                for p in tabela_processos:
+
+                    if p.pid == pid:
+                        alvo = p
+                        break
+
+                if not alvo:
+                    print("PID não encontrado.")
+                    continue
+
+                # IMPRESSORA
+                if recurso == "impressora":
+
+                    if impressora["livre"]:
+
+                        impressora["livre"] = False
+                        impressora["pid"] = pid
+
+                        print(
+                            f"[Kernel] PID {pid} "
+                            f"adquiriu IMPRESSORA."
+                        )
+
+                    else:
+
+                        alvo.estado = "BLOQUEADO"
+
+                        print(
+                            f"[Kernel] Impressora ocupada. "
+                            f"PID {pid} bloqueado."
+                        )
+
+                # SCANNER
+                elif recurso == "scanner":
+
+                    if scanner["livre"]:
+
+                        scanner["livre"] = False
+                        scanner["pid"] = pid
+
+                        print(
+                            f"[Kernel] PID {pid} "
+                            f"adquiriu SCANNER."
+                        )
+
+                    else:
+
+                        alvo.estado = "BLOQUEADO"
+
+                        print(
+                            f"[Kernel] Scanner ocupado. "
+                            f"PID {pid} bloqueado."
+                        )
+
+                verificar_deadlock()
+
+            # ==================================
+            # UNLOCK
+            # ==================================
+
+            elif acao == "unlock":
+
+                if len(comando) < 3:
+
+                    print(
+                        "Uso: unlock [recurso] [PID]"
+                    )
+
+                    continue
+
+                recurso = comando[1]
+                pid = int(comando[2])
+
+                if recurso == "impressora":
+
+                    if impressora["pid"] == pid:
+
+                        impressora["livre"] = True
+                        impressora["pid"] = None
+
+                        print(
+                            f"[Kernel] Impressora liberada."
+                        )
+
+                elif recurso == "scanner":
+
+                    if scanner["pid"] == pid:
+
+                        scanner["livre"] = True
+                        scanner["pid"] = None
+
+                        print(
+                            f"[Kernel] Scanner liberado."
+                        )
+
+            # ==================================
+            # WAIT
+            # ==================================
+
+            elif acao == "wait":
+
+                tabela_processos = [
+                    p for p in tabela_processos
+                    if p.estado != "ZUMBI"
+                ]
+
+                print(
+                    "[Kernel] Processos zumbis removidos."
+                )
+
+            # ==================================
+            # FORK
+            # ==================================
+
+            elif acao == "fork":
+
+                if len(comando) > 1:
+
+                    alvo_pid = int(comando[1])
+
+                    for p in tabela_processos:
+
+                        if p.pid == alvo_pid:
+
+                            clone = PCB(
+                                p.nome + "_child"
+                            )
+
+                            clone.estado = "PRONTO"
+
+                            clone.ciclos_restantes = (
+                                p.ciclos_restantes
+                            )
+
+                            clone.prioridade = (
+                                p.prioridade
+                            )
+
+                            tabela_processos.append(clone)
+
+                            print(
+                                f"[Kernel] PID {p.pid} "
+                                f"clonado -> "
+                                f"novo PID {clone.pid}"
+                            )
+
+                            break
+
+            # ==================================
+            # SEND
+            # ==================================
+
+            elif acao == "send":
+
+                if len(comando) >= 3:
+
+                    pid = comando[1]
+
+                    mensagem = " ".join(
+                        comando[2:]
+                    )
+
+                    ipc_memoria[pid] = mensagem
+
+                    print(
+                        f"[IPC] Mensagem enviada "
+                        f"para PID {pid}"
+                    )
+
+                else:
+
+                    print(
+                        "Uso: send [PID] [mensagem]"
+                    )
+
+            # ==================================
+            # READ
+            # ==================================
+
+            elif acao == "read":
+
+                if len(comando) > 1:
+
+                    pid = comando[1]
+
+                    mensagem = ipc_memoria.get(pid)
+
+                    if mensagem:
+
+                        print(
+                            f"[IPC] PID {pid}: "
+                            f"{mensagem}"
+                        )
+
+                    else:
+
+                        print(
+                            "[IPC] Nenhuma mensagem."
+                        )
+
+            # ==================================
+            # COMANDO INVÁLIDO
+            # ==================================
+
             else:
-                print(f"bash: {acao}: comando não encontrado. Digite 'help'.")
-                
-        # Intercepta o Ctrl+C para não "quebrar" o simulador com erro feio
+
+                print(
+                    f"bash: {acao}: "
+                    f"comando não encontrado."
+                )
+
         except KeyboardInterrupt:
-            print("\nPor favor, use 'exit' para sair do PyOS.")
+
+            print(
+                "\nUse 'exit' para desligar."
+            )
+
+        except ValueError:
+
+            print(
+                "Erro: valor inválido."
+            )
 
 # ==========================================
-# INÍCIO DO SISTEMA
+# MAIN
 # ==========================================
 
 if __name__ == "__main__":
+
     boot()
     shell()
