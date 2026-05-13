@@ -58,6 +58,49 @@
   </table>
 </div>
 
+---
+
+## 🚀 Como Executar
+
+Certifique-se de ter o Python 3 instalado em sua máquina.
+
+1.  Clone este repositório:
+    ```bash
+    git clone https://github.com/GabrielCaricchio/PyOS_v2.git
+    ```
+2.  Navegue até a pasta do projeto:
+    ```bash
+    cd PyOS_v2
+    ```
+3.  Execute o Kernel:
+    ```bash
+    python init.py
+    ```
+---
+
+## 🛠️ Comandos do Shell (User Space)
+
+Ao iniciar o PyOS v2, você terá acesso a um terminal interativo (`root@pyos:~#`):
+
+| Comando | Descrição |
+| :--- | :--- |
+| `help` | Exibe a lista com todos os comandos disponíveis no simulador. |
+| `spawn [nome]` | Cria um novo processo na RAM (gera um PID único). |
+| `ps` | Lista todos os processos ativos e seus respectivos estados. |
+| `cpu` | Executa 1 ciclo (tick) de clock no processador (Escalonador). |
+| `run` | Executa continuamente os ciclos de clock até finalizar os processos. |
+| `kill [PID]` | Encerra e remove o processo especificado da memória. |
+| `block [PID]` | Bloqueia o processo (ex: simulando espera por uma operação de E/S). |
+| `unblock [PID]` | Desbloqueia o processo, retornando-o para o estado de pronto. |
+| `lock [recurso] [PID]` | Solicita ao Semáforo o acesso exclusivo do processo a um recurso. |
+| `unlock [recurso] [PID]` | Libera o recurso bloqueado pelo processo para o uso de outros. |
+| `fork [PID]` | Cria uma cópia exata (processo filho) a partir do PID informado. |
+| `wait` | Faz o processo pai esperar até que o processo filho termine. |
+| `send [PID] [mensagem]` | Envia uma mensagem via IPC (Comunicação Interprocessos) para o PID alvo. |
+| `read [PID]` | Lê as mensagens recebidas na fila de IPC do processo especificado. |
+| `clear` | Limpa a tela do terminal do simulador. |
+| `exit` | Desliga e encerra a execução do simulador. |
+
 
 ---
 <div>
